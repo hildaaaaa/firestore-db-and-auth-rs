@@ -214,6 +214,7 @@ fn user_account_session() -> errors::Result<()> {
         "tests",
         Some(("abc".into(), dto::FieldOperator::EQUAL, "a_string")),
         None,
+        None,
     )?
     .collect();
     assert_eq!(results.len(), 1);
@@ -232,7 +233,7 @@ fn user_account_session() -> errors::Result<()> {
     println!("user::Session documents::query with orderby");
     let mut orderby = vec![];
     orderby.push(("a_map.a".to_owned(), true));
-    let results: Vec<dto::Document> = documents::query(&user_session, "tests", None, Some(orderby))?.collect();
+    let results: Vec<dto::Document> = documents::query(&user_session, "tests", None, Some(orderby), None)?.collect();
 
     assert_eq!(results.len(), 1);
 
@@ -258,6 +259,7 @@ fn user_account_session() -> errors::Result<()> {
         "tests",
         Some(("abc".into(), dto::FieldOperator::EQUAL, "a_string")),
         None,
+        None,
     )?
     .count();
     assert_eq!(count, 0);
@@ -268,6 +270,7 @@ fn user_account_session() -> errors::Result<()> {
         &user_session,
         "tests",
         Some((f.into(), dto::FieldOperator::EQUAL, "a_float")),
+        None,
         None,
     )?
     .count();
@@ -406,6 +409,7 @@ fn async_service_session() -> errors::Result<()> {
             "tests",
             Some(("abcd".into(), dto::FieldOperator::EQUAL, "a_string")),
             None,
+            None,
         ))?
         .collect();
     assert_eq!(results.len(), 1);
@@ -415,9 +419,15 @@ fn async_service_session() -> errors::Result<()> {
 
     orderby.push(("a_map.`000`".to_owned(), true));
     let results: Vec<dto::Document> = sys
-        .block_on(documents::query_async(&mut session, "tests", None, Some(orderby)))?
+        .block_on(documents::query_async(&mut session, "tests", None, Some(orderby.to_owned()), None))?
         .collect();
     assert_eq!(results.len(), 1);
+
+    println!("Query with limit");
+    let results: Vec<dto::Document> = sys
+        .block_on(documents::query_async(&mut session, "tests", None, Some(orderby), Some(0)))?
+        .collect();
+    assert_eq!(results.len(), 0);
 
     Ok(())
 }

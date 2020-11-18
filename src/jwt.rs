@@ -10,7 +10,7 @@ use std::slice::Iter;
 
 use crate::errors::FirebaseError;
 use biscuit::jwa::SignatureAlgorithm;
-use biscuit::{ClaimPresenceOptions, SingleOrMultiple, StringOrUri, ValidationOptions};
+use biscuit::{ClaimPresenceOptions, SingleOrMultiple, ValidationOptions};
 use std::ops::{Add, Deref};
 
 type Error = super::errors::FirebaseError;
@@ -136,8 +136,6 @@ pub(crate) fn create_jwt<S>(
 where
     S: AsRef<str>,
 {
-    use std::str::FromStr;
-
     use biscuit::{
         jws::{Header, RegisteredHeader},
         ClaimsSet, Empty, RegisteredClaims, JWT,
@@ -150,9 +148,9 @@ where
     });
     let expected_claims = ClaimsSet::<JwtOAuthPrivateClaims> {
         registered: RegisteredClaims {
-            issuer: Some(FromStr::from_str(&credentials.client_email)?),
-            audience: Some(SingleOrMultiple::Single(StringOrUri::from_str(audience)?)),
-            subject: Some(StringOrUri::from_str(&credentials.client_email)?),
+            issuer: Some(credentials.client_email.to_owned()),
+            audience: Some(SingleOrMultiple::Single(audience.to_string())),
+            subject: Some(credentials.client_email.to_owned()),
             expiry: Some(biscuit::Timestamp::from(Utc::now().add(duration))),
             issued_at: Some(biscuit::Timestamp::from(Utc::now())),
             ..Default::default()

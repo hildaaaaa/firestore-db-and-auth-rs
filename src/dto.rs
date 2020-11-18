@@ -53,6 +53,7 @@ pub enum FieldOperator {
     GREATER_THAN_OR_EQUAL, //	Greater than or equal. Requires that the field come first in orderBy.
     EQUAL,                 //	Equal.
     ARRAY_CONTAINS,        //	Contains. Requires that the field is an array.
+    IN,                    //   In.
 }
 
 impl Default for FieldOperator {

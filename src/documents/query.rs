@@ -40,18 +40,13 @@ use std::vec::IntoIter;
 pub fn query(
     auth: &impl FirebaseAuthBearer,
     collection_id: &str,
-    where_value: Option<(serde_json::Value, dto::FieldOperator, &str)>,
+    where_value: Option<Vec<(serde_json::Value, dto::FieldOperator, &str)>>,
     orderby_value: Option<Vec<(String, bool)>>,
     limit: Option<i32>,
 ) -> Result<Query> {
     let url = firebase_url_query(auth.project_id());
 
-    let query_request = make_structured_query(
-        collection_id,
-        where_value,
-        orderby_value,
-        limit,
-    );
+    let query_request = make_structured_query(collection_id, where_value, orderby_value, limit);
 
     let resp = exp_backoff(
         || {
@@ -93,18 +88,13 @@ pub fn query(
 pub async fn query_async(
     auth: &impl FirebaseAuthBearer,
     collection_id: &str,
-    where_value: Option<(serde_json::Value, dto::FieldOperator, &str)>,
+    where_value: Option<Vec<(serde_json::Value, dto::FieldOperator, &str)>>,
     orderby_value: Option<Vec<(String, bool)>>,
     limit: Option<i32>,
 ) -> Result<Query> {
     let url = firebase_url_query(auth.project_id());
 
-    let query_request = make_structured_query(
-        collection_id,
-        where_value,
-        orderby_value,
-        limit,
-    );
+    let query_request = make_structured_query(collection_id, where_value, orderby_value, limit);
 
     let resp = exp_backoff_async(
         || async {
@@ -165,11 +155,10 @@ impl Iterator for Query {
 
 fn make_structured_query(
     collection_id: &str,
-    where_value: Option<(serde_json::Value, dto::FieldOperator, &str)>,
+    where_value: Option<Vec<(serde_json::Value, dto::FieldOperator, &str)>>,
     orderby_value: Option<Vec<(String, bool)>>,
     limit: Option<i32>,
 ) -> dto::RunQueryRequest {
-
     let mut structured_query = dto::StructuredQuery {
         select: Some(dto::Projection { fields: None }),
         order_by: None,
@@ -183,15 +172,27 @@ fn make_structured_query(
     };
 
     if let Some(wv) = where_value {
-        let (v, operator, field) = wv;
-        let value = crate::firebase_rest_to_rust::serde_value_to_firebase_value(&v);
+        let mut filters = vec![];
+
+        for (v, operator, field) in wv {
+            let value = crate::firebase_rest_to_rust::serde_value_to_firebase_value(&v);
+            let f = dto::Filter {
+                field_filter: Some(dto::FieldFilter {
+                    value,
+                    op: operator,
+                    field: dto::FieldReference {
+                        field_path: field.to_owned(),
+                    },
+                }),
+                ..Default::default()
+            };
+            filters.push(f);
+        }
+
         structured_query.where_ = Some(dto::Filter {
-            field_filter: Some(dto::FieldFilter {
-                value,
-                op: operator,
-                field: dto::FieldReference {
-                    field_path: field.to_owned(),
-                },
+            composite_filter: Some(dto::CompositeFilter {
+                filters,
+                op: "AND".to_string(),
             }),
             ..Default::default()
         });

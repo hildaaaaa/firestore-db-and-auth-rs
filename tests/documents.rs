@@ -212,7 +212,7 @@ fn user_account_session() -> errors::Result<()> {
     let results: Vec<dto::Document> = documents::query(
         &user_session,
         "tests",
-        Some(("abc".into(), dto::FieldOperator::EQUAL, "a_string")),
+        Some(vec![("abc".into(), dto::FieldOperator::EQUAL, "a_string")]),
         None,
         None,
     )?
@@ -257,7 +257,7 @@ fn user_account_session() -> errors::Result<()> {
     let count = documents::query(
         &user_session,
         "tests",
-        Some(("abc".into(), dto::FieldOperator::EQUAL, "a_string")),
+        Some(vec![("abc".into(), dto::FieldOperator::EQUAL, "a_string")]),
         None,
         None,
     )?
@@ -269,7 +269,7 @@ fn user_account_session() -> errors::Result<()> {
     let count = documents::query(
         &user_session,
         "tests",
-        Some((f.into(), dto::FieldOperator::EQUAL, "a_float")),
+        Some(vec![(f.into(), dto::FieldOperator::EQUAL, "a_float")]),
         None,
         None,
     )?
@@ -350,7 +350,7 @@ fn async_service_session() -> errors::Result<()> {
         },
     );
     let obj2 = DemoDTO {
-        a_string: "def".to_owned(),
+        a_string: "abcd".to_owned(),
         an_int: 14,
         a_timestamp: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Nanos, true),
         a_map: Some(a_map_2.to_owned()),
@@ -407,7 +407,10 @@ fn async_service_session() -> errors::Result<()> {
         .block_on(documents::query_async(
             &mut session,
             "tests",
-            Some(("abcd".into(), dto::FieldOperator::EQUAL, "a_string")),
+            Some(vec![
+                ("abcd".into(), dto::FieldOperator::EQUAL, "a_string"),
+                (14.into(), dto::FieldOperator::EQUAL, "an_int"),
+            ]),
             None,
             None,
         ))?
@@ -419,13 +422,25 @@ fn async_service_session() -> errors::Result<()> {
 
     orderby.push(("a_map.`000`".to_owned(), true));
     let results: Vec<dto::Document> = sys
-        .block_on(documents::query_async(&mut session, "tests", None, Some(orderby.to_owned()), None))?
+        .block_on(documents::query_async(
+            &mut session,
+            "tests",
+            None,
+            Some(orderby.to_owned()),
+            None,
+        ))?
         .collect();
     assert_eq!(results.len(), 1);
 
     println!("Query with limit");
     let results: Vec<dto::Document> = sys
-        .block_on(documents::query_async(&mut session, "tests", None, Some(orderby), Some(0)))?
+        .block_on(documents::query_async(
+            &mut session,
+            "tests",
+            None,
+            Some(orderby),
+            Some(0),
+        ))?
         .collect();
     assert_eq!(results.len(), 0);
 
